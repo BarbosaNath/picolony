@@ -67,6 +67,14 @@ function _update()
 	if(btn(➡️))camera_x+=1*camera_spd
 	if(btn(⬆️))camera_y-=1*camera_spd
 	if(btn(⬇️))camera_y+=1*camera_spd
+	
+	for r in all(routines) do
+		if costatus(r) == "dead" then
+			del (routines, r)
+		else
+			assert(coresume(r))
+		end
+	end
 end
 
 
@@ -171,6 +179,11 @@ end
 
 function fmget(x,y,f)
 	return fget(mget(x,y), f)
+end
+
+routines = {}
+function async(func)
+	add(routines, cocreate(func))
 end
 -->8
 -- class --
@@ -282,7 +295,8 @@ function in_sps(x,y,sps)
 	return false
 end
 
-function update_world() 
+world_updt_counter=0
+function _update_world() 
  function get_mod(x,y,t)
  	local counter = 0
 -- 	counter+=in_sps(x-1,y-1,t) and 0 or 1
@@ -329,9 +343,17 @@ function update_world()
 	 	-- set water
 	 	if in_sps(x,y,water_sps) then
 	 		 set_dynamic(x,y, water_sps)
-	 	end	
+	 	end
+	 	world_updt_counter+=1
+			if world_updt_counter % 200 == 0 then
+				yield()
+			end
 	 end 
  end
+end
+
+function update_world()
+	async(_update_world)
 end
 
 function generate_world()
@@ -866,6 +888,13 @@ mine_spot=entity:new({
 	item_drop=3,
 	has_miner=false,
 	
+	generate=function(self, tbl)
+		add(
+			mine_spots, 
+			add_entt(self:new(tbl))
+		)
+	end,
+	
 	check_around=function(_ENV)
 		local counter = 0
 		
@@ -906,15 +935,7 @@ function select_mine()
 		end
 	end
 		
-	add(
-		mine_spots, 
-		add_entt(
-			mine_spot:new({
-				x=x,
-				y=y
-			})
-		)
-	)
+	mine_spot:generate({x=x,y=y})
 end
 __gfx__
 00000000004444000044440000555500005555001100001100000000000000000000000000000000110111001110000000110000001000000111777101000000
