@@ -164,7 +164,13 @@ function calc_drop(e)
 			item=e.item,
 			quantity=flr(rnd(e.item_drop))+1
 		}
+	else
+		return nil
 	end
+end
+
+function fmget(x,y,f)
+	return fget(mget(x,y), f)
 end
 -->8
 -- class --
@@ -585,6 +591,8 @@ person=entity:new({
 		local spot = target.block
 		
 		local drop = calc_drop(spot)
+		
+		if drop~=nil then
 		local added= false
 		for item in all(inv) do
 			if item.item == drop.item then
@@ -594,8 +602,9 @@ person=entity:new({
 		end
 		
 		if (not added) add(inv, drop)
+		end
 		
-		if(spot~=nil)mset(spot.x, spot.y, 36)
+		mset(spot.x, spot.y, 36)
 		
 		del(entities, spot)
 		del(mine_spots, spot)
@@ -631,7 +640,7 @@ person=entity:new({
 		target.x,target.y=pos_x,pos_y
 
 		-- move only to grass  		
-		if (mget((target.x+4)/8, (target.y+4)/8) == 32)
+		if fmget((target.x+4)/8, (target.y+4)/8, 1)
 		then action = 'move' end
 	end,
 	
@@ -857,7 +866,7 @@ mine_spot=entity:new({
 		local counter = 0
 		
 		function check(x,y)
-			return fget(mget(x, y), 1)
+			return fmget(x, y, 1)
 		end
 		
 		if (check(x  ,y-1)) counter+=1
