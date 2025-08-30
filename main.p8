@@ -27,7 +27,14 @@ function _init()
 	cursor_sp = 15
 	cursor_mode = 'select'
 	
-	cursor_actions
+	cursor_actions = {
+		select=select_entity,
+		mine=empty_fn,
+		chop=empty_fn,
+		crop=empty_fn,
+		attack=empty_fn,
+		build=empty_fn,
+	}
 	
 	for i=1, 10 do
 		person:generate()
@@ -41,8 +48,7 @@ function _update()
 		entt:update()
 	end
 	
-	
-	select_entity()
+	cursor_actions[cursor_mode]()
 	
 	camera_x_offset=peek2(0x5f28)
 	camera_y_offset=peek2(0x5f2a)
