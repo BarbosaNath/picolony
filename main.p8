@@ -590,19 +590,7 @@ person=entity:new({
 		
 		local spot = target.block
 		
-		local drop = calc_drop(spot)
-		
-		if drop~=nil then
-		local added= false
-		for item in all(inv) do
-			if item.item == drop.item then
-				item.quantity+=drop.quantity
-				added=true
-			end
-		end
-		
-		if (not added) add(inv, drop)
-		end
+		_ENV:add_to_inv(calc_drop(spot))
 		
 		mset(spot.x, spot.y, 36)
 		
@@ -681,6 +669,22 @@ person=entity:new({
 	end,
 	
 	------ helper functions -------
+	
+	-- add item to inventory --
+	add_to_inv=function(_ENV,drop)
+		if drop==nil then return end
+		
+		local added= false
+		for i in all(inv) do
+			if i.item == drop.item then
+				i.quantity+=drop.quantity
+				added=true
+			end
+		end
+		
+		if (not added) add(inv, drop)
+	end,
+	
 	
 	-- get next action or idle --
 	get_next_or_idle=function(_ENV, last)
