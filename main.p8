@@ -303,6 +303,48 @@ end
 -->8
 -- world --
 
+-- code by jolly uid=26356 --
+integer_list = {}
+size = 100
+
+-- make random numbered list
+function create_list()
+	for y=0,size do
+	 integer_list[y] = {} 
+	for x=0,size do
+		integer_list[y][x] = flr(rnd(16)) + .5
+	 
+	 if flr(rnd(200)) == 1 then
+	 integer_list[y][x] = 100
+	 end
+		
+		end
+	end
+end
+
+
+--noise using averages
+function noise(terrain,times)
+	times = times or 1
+	
+	for i=1,times do
+	for y=1,size-1 do
+	for x=1,size-1 do
+		terrain[y][x] = 
+		flr((terrain[y-1][x-1]
+		+terrain[y-1][x]
+		+terrain[y-1][x+1]
+		+terrain[y][x-1]
+		+terrain[y][x+1]
+		+terrain[y+1][x-1]
+		+terrain[y+1][x]
+		+terrain[y+1][x+1]) / 8)
+	end
+	end
+	end
+end
+-- end of code by jolly --
+
 function generate_world()
  -- set grass
  for x=0, 16 do
