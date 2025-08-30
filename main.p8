@@ -98,7 +98,7 @@ function _draw()
 	draw_menu()
 	draw_cursor()
 	
-	print_list(entities)
+	-- print_list(entities)
 	
 	camera(camera_x, camera_y)
 end
@@ -200,15 +200,18 @@ entity=class:new({
 	x=0,
 	y=0,
 	sp=0,
-	draw=function()end,
-	update=function()end,
-	draw_info=function()end,
-	init=function(self)
-		self.id = entity_id
-		entity_id += 1
-		add(entities, self)
-	end,
+	draw=empty_fn,
+	update=empty_fn,
+	draw_info=empty_fn,
+	init=empty_fn,
 })
+
+function add_entt(tbl)
+	tbl.id = entity_id
+	entity_id += 1
+	add(entities, tbl)
+	return tbl
+end
 -->8
 -- world --
 
@@ -359,7 +362,7 @@ function generate_world()
 	 	local y = flr(rnd(size-20))
 	 	if mget(x,y) == 32 then
 	 		mset(x,y,s)
-	 		if(s==33)tree:new({x=x*8,y=y*8,leaves={}})
+	 		if(s==33)tree:generate({x=x*8,y=y*8,leaves={}})
 	 	end
 	 end
  end
@@ -700,6 +703,7 @@ person=entity:new({
 	generate=function(self)
 	 local sp = rnd({1,3})
 		return self:new({
+			init=add_entt,
 			name=rnd(
 				{
 					'alex', 'breno', 'claudio',
@@ -786,7 +790,7 @@ tree=entity:new({
 	
 	leaves={},
 	
-	_init=function(_ENV)
+	init=function(_ENV)
 		add(leaves,leaf:new({x=x  ,y=y}))
 		add(leaves,leaf:new({x=x+8,y=y  ,sp=50,fh=true}))
 		add(leaves,leaf:new({x=x-8,y=y  ,sp=50}))
@@ -803,12 +807,8 @@ tree=entity:new({
 		end
 	end,
 	
-	init=function(self)
-		self.id = entity_id
-		entity_id += 1
-		add(entities, self)
-		
-		self:_init()
+	generate=function(self, tbl)
+		return add_entt(self:new(tbl))
 	end,
 	
 	draw=function(_ENV)
@@ -905,8 +905,16 @@ function select_mine()
 			return
 		end
 	end
-	
-	add(mine_spots, mine_spot:new({x=x,y=y}))
+		
+	add(
+		mine_spots, 
+		add_entt(
+			mine_spot:new({
+				x=x,
+				y=y
+			})
+		)
+	)
 end
 __gfx__
 00000000004444000044440000555500005555001100001100000000000000000000000000000000110111001110000000110000001000000111777101000000
