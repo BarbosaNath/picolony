@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 42
+version 43
 __lua__
 -- main --
 
@@ -68,7 +68,7 @@ function new_person(
 )
 	person_id += 1
 	return {
-		id=person_id
+		id=person_id,
 		name=name,
 		x=x,
 		y=y,
@@ -76,7 +76,7 @@ function new_person(
 			timer=-1,
 			x=x,
 			y=y,
-			block=nil
+			block=nil,
 		},
 		action='idle',
 		nacts={}, --next_actions
@@ -93,7 +93,10 @@ function new_person(
 			boredon=0,
 		},
 		
-		relations={},
+		humor_text='neutral',
+		humor_color=6,
+		
+		relations={}
 	}
 end
 
@@ -107,6 +110,7 @@ function idle(p)
 	p.target.timer -= 1
 
 	if p.target.timer == 0 then
+		add(p.lacts, 'idle')
 		p.target.timer = -1
 		p.action = 'random_action'
 	end
@@ -118,6 +122,7 @@ function move_person(p)
 	if p.target.x == p.x
 	and p.target.y == p.y then
 		if is_empty(p.nacts)	then
+			add(p.lacts, 'move')
 			p.action = 'idle'
 		else
 			p.action =	pop_left(p.nacts)
@@ -170,8 +175,28 @@ function act_person(p)
 end
 
 
+function check_boredon(p)
+	if #p.lacts >= 5 then
+		local counter = 0
+		
+		for i=#p.lacts-5,#p.lacts do
+			if p.lacts[i] == 'idle'
+			or p.lacts[i] == 'move'
+			then
+				counter += 1
+			end
+		end
+		
+		if counter == 5 then
+			deli(p.lacts, 1)
+			p.humor.boredon+=p.humor.boredon == 10 and 0 or 1
+		end
+	end
+end
+
+
 function check_humor(p)
-	
+	check_boredon(p)
 end
 
 
@@ -180,9 +205,32 @@ end
 function person_info(p)
 	rectfill(0,86,127,127,0)
 	rect(0,86,127,127,7)
+
+	local x = 3
+	local y = 89
+
+	function println(t,c)
+		print(t,x,y,c)
+		y+=7
+	end
+
+	println(p.name,7)
+	println(p.action,5)
 	
-	print(p.name,3,89,7)
-	print(p.action,3,89+7,5)
+	x=63
+	y=89
+	
+	println('happiness: '..p.humor.happiness,10)
+	println('sadness: '..p.humor.sadness,13)
+	println('hatred: '..p.humor.hatred,8)
+	println('love: '..p.humor.love,14)
+	println('boredon: '..p.humor.boredon,6)
+		
+--			happiness=5,
+--			sadness=0,
+--			hatred=0,
+--			love=0,
+--			boredon=0,
 end
 
 
