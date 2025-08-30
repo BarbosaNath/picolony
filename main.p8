@@ -8,6 +8,7 @@ function _init()
 	poke(0x5f2d, 1)
 	generate_world()
 	people = {}
+	person_id = 1
 	
 	mouse_x=0
 	mouse_y=0
@@ -64,8 +65,10 @@ end
 -- create new person --
 function new_person(
 	name,x, y
-) 
+)
+	person_id += 1
 	return {
+		id=person_id
 		name=name,
 		x=x,
 		y=y,
@@ -73,11 +76,24 @@ function new_person(
 			timer=-1,
 			x=x,
 			y=y,
+			block=nil
 		},
 		action='idle',
 		nacts={}, --next_actions
+		lacts={}, --last_actions
 		sp=1,
-		variant=1
+		variant=1,
+		inventory={},
+		
+		humor={
+			happiness=5,
+			sadness=0,
+			hatred=0,
+			love=0,
+			boredon=0,
+		},
+		
+		relations={},
 	}
 end
 
@@ -150,14 +166,23 @@ action = {
 -- act acording to action --
 function act_person(p)
 	action[p.action](p)
+	check_humor(p)
 end
+
+
+function check_humor(p)
+	
+end
+
 
 
 -- render person information --
 function person_info(p)
 	rectfill(0,86,127,127,0)
 	rect(0,86,127,127,7)
+	
 	print(p.name,3,89,7)
+	print(p.action,3,89+7,5)
 end
 
 
@@ -217,7 +242,7 @@ function dump(o)
       local s = '{ '
       for k,v in pairs(o) do
          if type(k) ~= 'number' then k = '"'..k..'"' end
-         s = s .. '['..k..'] = ' .. dump(v) .. ','
+         s = s..k..': ' .. dump(v) .. ','
       end
       return s .. '} '
    else
