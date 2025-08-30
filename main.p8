@@ -43,7 +43,9 @@ function _draw()
 		spr(p.sp, p.x, p.y)
 	end
 	
-	print(selected)
+	if selected~=nil then
+		person_info(selected)
+	end
 	
 	draw_selection()
 	draw_cursor()
@@ -150,6 +152,13 @@ function act_person(p)
 	action[p.action](p)
 end
 
+
+-- render person information --
+function person_info(p)
+	rectfill(0,86,127,127,0)
+	rect(0,86,127,127,7)
+	print(p.name,3,89,7)
+end
 
 
 -- debuging functions --
