@@ -36,9 +36,6 @@ function _init()
 		build=empty_fn,
 	}
 	
-	fudeu=0
-	to_log=''
-	
 	for i=1, 10 do
 		person:generate()
 	end
@@ -103,9 +100,6 @@ function _draw()
 	
 	print_list(entities)
 	
-	print(fudeu, 50,50, 8)
-	print(to_log,50,57, 8)
-	
 	camera(camera_x, camera_y)
 end
 
@@ -161,6 +155,17 @@ function dump(o)
 end
 
 function empty_fn()end
+
+
+
+function calc_drop(e)
+	if (rnd(100)<e.drop_rate) then
+		return {
+			item=e.item,
+			quantity=flr(rnd(e.item_drop))+1
+		}
+	end
+end
 -->8
 -- class --
 
@@ -579,6 +584,17 @@ person=entity:new({
 		
 		local spot = target.block
 		
+		local drop = calc_drop(spot)
+		local added= false
+		for item in all(inv) do
+			if item.item == drop.item then
+				item.quantity+=drop.quantity
+				added=true
+			end
+		end
+		
+		if (not added) add(inv, drop)
+		
 		if(spot~=nil)mset(spot.x, spot.y, 36)
 		
 		del(entities, spot)
@@ -832,6 +848,9 @@ end
 mine_spot_frame=0
 mine_spot=entity:new({
 	sp=53,
+	item='stone',
+	drop_rate=95,
+	item_drop=3,
 	has_miner=false,
 	
 	check_around=function(_ENV)
