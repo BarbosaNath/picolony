@@ -49,7 +49,7 @@ function _update()
 		entt:update()
 	end
 	
-	mine_spot_frame=(mine_spot_frame+1)%20
+	act_spot_frame=(act_spot_frame+1)%20
 	
 	cursor_actions[cursor_mode]()
 	
@@ -461,6 +461,53 @@ end
 
 
 
+act_spot_frame=0
+act_spot=entity:new({
+	sp=0,
+	item='',
+	drop_rate=95,
+	item_drop=3,
+	has_actor=false,
+	action_time=30,
+
+	container={},
+	
+	generate=function(self, tbl, container)
+		self.container = container
+		add(
+			container, 
+			add_entt(self:new(tbl))
+		)
+	end,
+	
+	act=function(self)
+		
+	end,
+	
+	kill=function(self)
+		del(entities, self)
+		del(self.container, self)
+	end,
+	
+	check_around=function(_ENV)
+		local counter = 0
+		
+		function check(x,y)
+			return fmget(x, y, 1)
+		end
+		
+		if (check(x  ,y-1)) counter+=1
+		if (check(x-1,y  )) counter+=2
+		if (check(x+1,y  )) counter+=4
+		if (check(x  ,y+1)) counter+=8
+		
+		return counter
+	end,
+	
+	draw=function(_ENV)
+		if(flr(act_spot_frame/10)==0)spr(sp,x*8,y*8)
+	end,
+})
 -->8
 -- menu --
 
@@ -644,17 +691,16 @@ person=entity:new({
 		
 		for spot in all(mine_spots) do
 			local space_flag = spot:check_around()
-			if not spot.has_miner
+			if not spot.has_actor
 			and space_flag > 0 then
-				spot.has_miner = true
+				spot.has_actor = true
 				
-				target.block=spot
+				target.spot=spot
 				
 				for pos in all({
 					{1,0,-1}, {2,-1,0},
 					{4,1, 0}, {8, 0,1}
 				}) do
-					global.fudeu=space_flag&pos[1]>0
 					if space_flag&pos[1]>0 then
 						target.x = (spot.x+pos[2])*8
 						target.y = (spot.y+pos[3])*8
@@ -673,33 +719,24 @@ person=entity:new({
 	
 	-- mine target block --
 	mine=function(_ENV)
-		if (target.timer==-1) target.timer=30
-		
-		if target.timer!=0 then 
-			target.timer-=1
-			return
+		if _ENV:spot_act() then
+			action='check_mine'
 		end
-		
-		local spot = target.block
-		
-		_ENV:add_to_inv(calc_drop(spot))
-		
-		mset(spot.x, spot.y, 36)
-		
-		updt_tiles_around(
-			spot.x,
-		 spot.y,
-		 rock_sps
-		)
-		
-		del(entities, spot)
-		del(mine_spots, spot)
-		
-		target.block=nil
-		target.timer=-1
-		action='check_mine'
 	end,
 	
+	spot_act=function(_ENV)
+		local spot = target.spot
+		
+		if spot.action_time>0 then 
+			spot.action_time-=1
+			return false
+		end
+	
+		spot:act()
+		
+		target.spot=nil
+		return true
+	end,
 	
 	-- select random action --
 	random_action=function(_ENV)	
@@ -957,38 +994,14 @@ end
 -->8
 -- mine mode --
 
-mine_spot_frame=0
-mine_spot=entity:new({
+mine_spot=act_spot:new({
 	sp=53,
 	item='stone',
-	drop_rate=95,
-	item_drop=3,
-	has_miner=false,
 	
-	generate=function(self, tbl)
-		add(
-			mine_spots, 
-			add_entt(self:new(tbl))
-		)
-	end,
-	
-	check_around=function(_ENV)
-		local counter = 0
-		
-		function check(x,y)
-			return fmget(x, y, 1)
-		end
-		
-		if (check(x  ,y-1)) counter+=1
-		if (check(x-1,y  )) counter+=2
-		if (check(x+1,y  )) counter+=4
-		if (check(x  ,y+1)) counter+=8
-		
-		return counter
-	end,
-	
-	draw=function(_ENV)
-		if(flr(mine_spot_frame/10)==0)spr(sp,x*8,y*8)
+	act=function(_ENV)
+		mset(x, y, 36)
+		updt_tiles_around(x,y,rock_sps)
+		_ENV:kill()
 	end,
 })
 
@@ -1005,14 +1018,17 @@ function select_mine()
 
 	for spot in all(mine_spots) do
 		if  spot.x==x 
-		and spot.y==y then
-			del(mine_spots, spot)
-			del(entities, spot)
+		and spot.y==y
+		then
+			if not spot.has_actor then
+				spot:kill()
+			end
+			
 			return
 		end
 	end
 		
-	mine_spot:generate({x=x,y=y})
+	mine_spot:generate({x=x,y=y},mine_spots)
 end
 -->8
 -- build mode --
