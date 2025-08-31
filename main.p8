@@ -508,6 +508,37 @@ act_spot=entity:new({
 		if(flr(act_spot_frame/10)==0)spr(sp,x*8,y*8)
 	end,
 })
+
+function has_spot(x,y,container)
+	for s in all(container) do
+		if s.x==x	and s.y==y then
+			return s
+		end
+	end
+	
+	return nil
+end
+
+function toggle_spot(s)
+	if (not s.has_actor) s:kill()
+end
+
+function create_spot(spt,container,conditional)
+	if not is_mouse_released 
+	then return end
+	
+	local x, y = flr(mouse_x/8), flr(mouse_y/8)
+	
+	if not conditional(x, y) 
+	then return end
+
+	local s=has_spot(x,y,container)
+	if s~= nil then
+		toggle_spot(s)
+	else
+		spt:generate({x=x,y=y},container)
+	end
+end
 -->8
 -- menu --
 
@@ -682,14 +713,14 @@ person=entity:new({
 	end,
 	
 	
-	-- check for mine spots --
-	check_mine=function(_ENV)
-		if #mine_spots == 0 then
+	-- check for spots --
+	check_spots=function(_ENV,act,container)
+		if #container == 0 then
 			action='idle'
 			return
 		end
 		
-		for spot in all(mine_spots) do
+		for spot in all(container) do
 			local space_flag = spot:check_around()
 			if not spot.has_actor
 			and space_flag > 0 then
@@ -709,7 +740,8 @@ person=entity:new({
 				end
 				
 				action = 'move'
-				add(nacts, 'mine')
+				add(nacts, 'spot_act')
+				add(nacts, 'check_'..act)
 				return
 			end
 		end
@@ -717,25 +749,34 @@ person=entity:new({
 		action='idle'
 	end,
 	
-	-- mine target block --
-	mine=function(_ENV)
-		if _ENV:spot_act() then
-			action='check_mine'
-		end
+	
+	-- check available mine spots --
+	check_mine=function(self)
+		self:check_spots(
+			'mine',mine_spots
+		)
 	end,
 	
+	-- check available build spots --
+	check_build=function(self)
+		self:check_spots(
+			'build',build_spots
+		)
+	end,
+	
+	-- act acording to spot --
 	spot_act=function(_ENV)
 		local spot = target.spot
 		
 		if spot.action_time>0 then 
 			spot.action_time-=1
-			return false
+			return
 		end
 	
 		spot:act()
 		
 		target.spot=nil
-		return true
+		get_next_or_idle(_ENV,'spot_act')
 	end,
 	
 	-- select random action --
@@ -744,6 +785,7 @@ person=entity:new({
 			'idle',
 			'random_move',
 			'check_mine',
+			'check_build',
 		})
 	end,
 	
@@ -1008,50 +1050,44 @@ mine_spot=act_spot:new({
 mine_spots={}
 
 function select_mine() 
-	if not is_mouse_released 
-	then return end
-	
-	local x, y = flr(mouse_x/8), flr(mouse_y/8)
-	
-	if not in_sps(x, y, rock_sps) 
-	then return end
-
-	for spot in all(mine_spots) do
-		if  spot.x==x 
-		and spot.y==y
-		then
-			if not spot.has_actor then
-				spot:kill()
-			end
-			
-			return
+	create_spot(
+		mine_spot,
+		mine_spots,
+		function (x,y)
+			return in_sps(x,y,rock_sps)
 		end
-	end
-		
-	mine_spot:generate({x=x,y=y},mine_spots)
+	)
 end
 -->8
 -- build mode --
 
+build_spot=act_spot:new({
+	sp=5,
+	item='wall',
+	
+	act=function(_ENV)
+		mset(x, y, 93)
+		updt_tiles_around(x,y,wall_sps)
+		_ENV:kill()
+	end,
+})
 
+build_spots={}
 
 function select_build()
-	if not is_mouse_released 
-	then return end
-	
-	local x, y = flr(mouse_x/8), flr(mouse_y/8)
-	
-	if not (fmget(x, y, 1) and not fmget(x, y, 7))
-	then return end
-	
-	mset(x,y,93)	
-	updt_tiles_around(x,y,wall_sps)
+	create_spot(
+		build_spot,
+		build_spots,
+		function (x,y)
+			return not in_sps(x,y,rock_sps)
+		end
+	)
 end
 
 __gfx__
 00000000004444000044440000444400004444001100001100000000000000000000000000000000110111001110000000110000001000000111777101000000
-00000000004f5ff0004f5ff0004f5ff0004f5ff0100c010100000000000000000000000000000000171771001771000001171000017100001177111017100000
-00700700004fff00004fff00004fff00004fff0000ccc01000000000000000000000000000000000017771001777100011771000177710001771100017710000
+00000000004f5ff0004f5ff0004f5ff0004f5ff0101c010100000000000000000000000000000000171771001771000001171000017100001177111017100000
+00700700004fff00004fff00004fff00004fff0001ccc01000000000000000000000000000000000017771001777100011771000177710001771100017710000
 00077000000cc000000cc000000cc000000cc0000ccc010000000000000000000000000000000000177710000177711017717100177771001717100017771000
 00077000000cc000000cc000000cc000000cc00000c0c01000000000000000000000000000000000177171000017777117101710117717107111710017777100
 00700700000c1000000c1000000c1000000c100001010c0000000000000000000000000000000000111017100001771017100171011101717100171017711000
