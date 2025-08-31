@@ -287,70 +287,83 @@ water_sps=generate_sps(68)
 wall_sps=generate_sps(76)
 
 function in_sps(x,y,sps)
-	for v in all(sps) do
-		if v == mget(x,y) then
-		 return true
-		end
-	end
+	msp=mget(x,y)
+	i=sps[1]
+	
+	if msp >= i    and msp<=i+3
+	or msp >= i+16 and msp<=i+19
+	or msp >= i+32 and msp<=i+35
+	or msp >= i+48 and msp<=i+51
+	then return true end
+	
 	return false
 end
 
-world_updt_counter=0
-function _update_world(opt) 
- function get_mod(x,y,t)
+function set_tile_dynamically(x,y,t)
+	function get_mod(x,y,t)
  	local counter = 0
--- 	counter+=in_sps(x-1,y-1,t) and 0 or 1
 		counter+=in_sps(x  ,y-1,t) and 0 or 2
---		counter+=in_sps(x+1,y-1,t) and 0 or 4
 		counter+=in_sps(x-1,y  ,t) and 0 or 8
---		counter+=in_sps(x  ,y  ,t) and 0 or 16
 		counter+=in_sps(x+1,y  ,t) and 0 or 32
---		counter+=in_sps(x-1,y+1,t) and 0 or 64
 		counter+=in_sps(x  ,y+1,t) and 0 or 128
---		counter+=in_sps(x+1,y+1,t) and 0 or 256
 		return counter
  end
- 
- 
- function set_dynamic(x,y,t) 	
- 	local m=get_mod(x,y,t)
  	
- 	if((m&2 ) != 0)mset(x,y,t[2])
- 	if((m&8 ) != 0)mset(x,y,t[5])
- 	if((m&10) ==10)mset(x,y,t[1])
- 	if((m&32) != 0)mset(x,y,t[7])
- 	if((m&34) ==34)mset(x,y,t[3])
- 	if((m&128)!= 0)mset(x,y,t[10])
- 	if((m&136)==136)mset(x,y,t[9])
-		if((m&160)==160)mset(x,y,t[11])
-		if((m&130)==130)mset(x,y,t[14])
-		if((m&138)==138)mset(x,y,t[13])
-		if((m&162)==162)mset(x,y,t[15])
-		if((m&40)==40)mset(x,y,t[8])
-		if((m&42)==42)mset(x,y,t[4])
-		if((m&168)==168)mset(x,y,t[12])
-		if((m&170)==170)mset(x,y,t[16])
- end
+	local m=get_mod(x,y,t)
+	
+	if((m&2 ) != 0)mset(x,y,t[2])
+	if((m&8 ) != 0)mset(x,y,t[5])
+	if((m&10) ==10)mset(x,y,t[1])
+	if((m&32) != 0)mset(x,y,t[7])
+	if((m&34) ==34)mset(x,y,t[3])
+	if((m&128)!= 0)mset(x,y,t[10])
+	if((m&136)==136)mset(x,y,t[9])
+	if((m&160)==160)mset(x,y,t[11])
+	if((m&130)==130)mset(x,y,t[14])
+	if((m&138)==138)mset(x,y,t[13])
+	if((m&162)==162)mset(x,y,t[15])
+	if((m&40)==40)mset(x,y,t[8])
+	if((m&42)==42)mset(x,y,t[4])
+	if((m&168)==168)mset(x,y,t[12])
+	if((m&170)==170)mset(x,y,t[16])
+end
+
+function updt_tiles_around(x,y,sps)
+	for xm=-1,1 do
+	for ym=-1,1 do
+		if in_sps(x+xm,y+ym,sps)then
+			set_tile_dynamically(
+				x+xm,
+				y+ym,
+				sps
+			)
+		end
+	end
+	end
+end
  
- 
+world_updt_counter=0
+function _update_world(opt) 
  -- set complex terrain
  for x=0, size-10 do
 	 for y=0, size-10 do
 	  -- set rocks
 	 	if (opt=='rock' or opt==nil) and in_sps(x,y,rock_sps) then
-	 		 set_dynamic(x,y, rock_sps)
+	 		 set_tile_dynamically(x,y, rock_sps)
 	 	end
+	 	
 	 	-- set water
 	 	if (opt=='water' or opt==nil) and in_sps(x,y,water_sps) then
-	 		 set_dynamic(x,y, water_sps)
+	 		 set_tile_dynamically(x,y, water_sps)
 	 	end
+	 	
 	 	-- set walls
 	 	if (opt=='wall' or opt==nil) and in_sps(x,y,wall_sps) then
-	 		 set_dynamic(x,y, wall_sps)
+	 		 set_tile_dynamically(x,y, wall_sps)
 	 	end
 	 	
 	 	world_updt_counter+=1
-			if world_updt_counter % 200 == 0 then
+			if world_updt_counter % 256 == 0 then
 				yield()
 			end
 	 end 
@@ -442,6 +455,12 @@ end
 function draw_cursor()
 	spr(cursor_sp, mouse_x, mouse_y)
 end
+
+
+
+
+
+
 -->8
 -- menu --
 
@@ -667,12 +686,17 @@ person=entity:new({
 		
 		mset(spot.x, spot.y, 36)
 		
+		updt_tiles_around(
+			spot.x,
+		 spot.y,
+		 rock_sps
+		)
+		
 		del(entities, spot)
 		del(mine_spots, spot)
 		
 		target.block=nil
 		target.timer=-1
-		update_world('rock')
 		action='check_mine'
 	end,
 	
@@ -993,6 +1017,8 @@ end
 -->8
 -- build mode --
 
+
+
 function select_build()
 	if not is_mouse_released 
 	then return end
@@ -1003,7 +1029,7 @@ function select_build()
 	then return end
 	
 	mset(x,y,93)	
-	update_world('wall')
+	updt_tiles_around(x,y,wall_sps)
 end
 
 __gfx__
